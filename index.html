@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema de Revisión de Amarros</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2.5rem;
+            max-width: 700px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            color: #2d3748;
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #718096;
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            color: #4a5568;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+        }
+
+        input[type="text"],
+        input[type="number"] {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-family: 'Inter', sans-serif;
+            transition: all 0.3s ease;
+            background: white;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .range-inputs {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.875rem 2rem;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+            font-family: 'Inter', sans-serif;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-success {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            box-shadow: 0 4px 15px rgba(72, 187, 120, 0.4);
+            margin-top: 1rem;
+        }
+
+        .btn-success:hover {
+            box-shadow: 0 6px 20px rgba(72, 187, 120, 0.5);
+        }
+
+        .checklist-container {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            background: #f7fafc;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .checklist-container::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .checklist-container::-webkit-scrollbar-track {
+            background: #edf2f7;
+            border-radius: 10px;
+        }
+
+        .checklist-container::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 10px;
+        }
+
+        .checklist-container::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            padding: 0.75rem;
+            margin-bottom: 0.5rem;
+            background: white;
+            border-radius: 8px;
+            transition: all 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .checklist-item:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+
+        .checklist-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            margin-right: 1rem;
+            cursor: pointer;
+            accent-color: #667eea;
+        }
+
+        .checklist-item label {
+            margin: 0;
+            cursor: pointer;
+            color: #2d3748;
+            font-weight: 500;
+        }
+
+        .checklist-item input[type="checkbox"]:checked + label {
+            text-decoration: line-through;
+            color: #a0aec0;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #a0aec0;
+            padding: 2rem;
+            font-style: italic;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(5px);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2.5rem;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 90%;
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.3);
+            animation: modalSlideIn 0.3s ease-out;
+            position: relative;
+        }
+
+        @keyframes modalSlideIn {
+            from {
+                opacity: 0;
+                transform: scale(0.9) translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1) translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-icon {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-right: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .modal-title {
+            color: #2d3748;
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .modal-body {
+            color: #4a5568;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+        }
+
+        .modal-body strong {
+            color: #2d3748;
+        }
+
+        .missing-files {
+            background: #fff5f5;
+            border-left: 4px solid #fc8181;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+
+        .missing-files-title {
+            color: #c53030;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+
+        .missing-files-list {
+            color: #742a2a;
+            margin-left: 1rem;
+        }
+
+        .btn-close {
+            background: #e2e8f0;
+            color: #2d3748;
+            box-shadow: none;
+        }
+
+        .btn-close:hover {
+            background: #cbd5e0;
+            transform: translateY(-2px);
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📦 Sistema de Revisión de Amarros</h1>
+        <p class="subtitle">Control y seguimiento de documentos</p>
+
+        <div class="form-group">
+            <button class="btn" type="button" onclick="window.location.href='amarros-pendientes.html'">Ver amarros pendientes</button>
+        </div>
+
+        <div class="form-group">
+            <label for="packageName">Codigo del Amarro</label>
+            <input type="text" id="packageName" placeholder="Ej: 07-2016 o 072016">
+        </div>
+
+        <div class="form-group">
+            <label for="year">Año</label>
+            <input type="number" id="year" min="1900" max="2100" placeholder="2025">
+        </div>
+
+        <div class="range-inputs">
+            <div class="form-group">
+                <label for="rangeFrom">Desde</label>
+                <input type="number" id="rangeFrom" min="1" placeholder="1">
+            </div>
+            <div class="form-group">
+                <label for="rangeTo">Hasta</label>
+                <input type="number" id="rangeTo" min="1" placeholder="100">
+            </div>
+        </div>
+
+        <button class="btn" onclick="generateChecklist()">Generar Lista de Documentos</button>
+
+        <div id="checklistContainer" class="checklist-container hidden">
+            <div id="checklistItems"></div>
+        </div>
+
+        <button id="saveBtn" class="btn btn-success hidden" onclick="saveRevision()">Guardar Revisión</button>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-icon">✓</div>
+                <div class="modal-title">Revisión Guardada</div>
+            </div>
+            <div class="modal-body" id="modalBody"></div>
+            <button class="btn btn-close" onclick="closeModal()">Cerrar</button>
+        </div>
+    </div>
+
+    <script>
+        function generateChecklist() {
+            const packageName = document.getElementById('packageName').value.trim();
+            const year = parseInt(document.getElementById('year').value);
+            const rangeFrom = parseInt(document.getElementById('rangeFrom').value);
+            const rangeTo = parseInt(document.getElementById('rangeTo').value);
+
+            // Validaciones
+            if (!packageName) {
+                alert('Por favor, ingresa el nombre del amarro');
+                return;
+            }
+
+            if (isNaN(year)) {
+                alert('Por favor, ingresa un año válido');
+                return;
+            }
+
+            if (isNaN(rangeFrom) || isNaN(rangeTo)) {
+                alert('Por favor, ingresa valores válidos para el rango');
+                return;
+            }
+
+            if (rangeFrom > rangeTo) {
+                alert('El valor "Desde" debe ser menor o igual que "Hasta"');
+                return;
+            }
+
+            if (rangeTo - rangeFrom > 1000) {
+                alert('El rango no puede ser mayor a 1000 elementos');
+                return;
+            }
+
+            // Generar checklist
+            const container = document.getElementById('checklistContainer');
+            const itemsContainer = document.getElementById('checklistItems');
+            itemsContainer.innerHTML = '';
+
+            for (let i = rangeFrom; i <= rangeTo; i++) {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'checklist-item';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `file-${i}`;
+                checkbox.checked = true; // Por defecto marcados (archivo presente)
+                
+                const label = document.createElement('label');
+                label.htmlFor = `file-${i}`;
+                label.textContent = `Documento ${i}`;
+                
+                itemDiv.appendChild(checkbox);
+                itemDiv.appendChild(label);
+                itemsContainer.appendChild(itemDiv);
+            }
+
+            container.classList.remove('hidden');
+            document.getElementById('saveBtn').classList.remove('hidden');
+        }
+
+        function saveRevision() {
+            const packageName = document.getElementById('packageName').value.trim();
+            const year = parseInt(document.getElementById('year').value);
+            const rangeFrom = parseInt(document.getElementById('rangeFrom').value);
+            const rangeTo = parseInt(document.getElementById('rangeTo').value);
+
+            if (isNaN(year)) {
+                alert('Por favor, ingresa un año válido');
+                return;
+            }
+
+            // Encontrar archivos faltantes (checkboxes desmarcados)
+            const missingFiles = [];
+            const documents = [];
+            for (let i = rangeFrom; i <= rangeTo; i++) {
+                const checkbox = document.getElementById(`file-${i}`);
+                const exists = checkbox && checkbox.checked ? 1 : 0; // 1 = existe físicamente, 0 = no existe
+
+                if (checkbox && !checkbox.checked) {
+                    missingFiles.push(i);
+                }
+
+                documents.push({
+                    numero_documento: i,
+                    existe_fisicamente: exists
+                });
+            }
+
+            // Enviar datos al backend
+            fetch('guardar_revision.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    codigo_amarro: packageName,
+                    anio: year,
+                    rango_inicio: rangeFrom,
+                    rango_fin: rangeTo,
+                    documentos: documents
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Construir mensaje
+                let message = `<p><strong>Amarro:</strong> ${packageName}</p>`;
+                message += `<p><strong>Año:</strong> ${year}</p>`;
+                message += `<p><strong>Rango:</strong> Desde ${rangeFrom} hasta ${rangeTo}</p>`;
+                message += `<p><strong>Total de documentos:</strong> ${rangeTo - rangeFrom + 1}</p>`;
+
+                if (missingFiles.length > 0) {
+                    message += `<div class="missing-files">`;
+                    message += `<div class="missing-files-title">⚠️ Documentos Faltantes (${missingFiles.length})</div>`;
+                    message += `<div class="missing-files-list">`;
+                    message += missingFiles.map(num => `Documento ${num}`).join(', ');
+                    message += `</div></div>`;
+                } else {
+                    message += `<p style="color: #48bb78; font-weight: 600;">✓ Todos los documentos están presentes</p>`;
+                }
+
+                if (data && data.success) {
+                    message += `<p style="margin-top: 1rem; color: #2b6cb0;"><strong>Base de datos:</strong> Revisión guardada correctamente (ID amarro: ${data.amarro_id}).</p>`;
+                } else {
+                    message += `<p style="margin-top: 1rem; color: #c53030;"><strong>Base de datos:</strong> No se pudo guardar la revisión. ${data && data.message ? data.message : ''}</p>`;
+                }
+
+                // Mostrar modal
+                document.getElementById('modalBody').innerHTML = message;
+                document.getElementById('modal').style.display = 'flex';
+            })
+            .catch(error => {
+                console.error('Error al guardar la revisión:', error);
+                let message = `<p><strong>Amarro:</strong> ${packageName}</p>`;
+                message += `<p><strong>Año:</strong> ${year}</p>`;
+                message += `<p><strong>Rango:</strong> Desde ${rangeFrom} hasta ${rangeTo}</p>`;
+                message += `<p><strong>Total de documentos:</strong> ${rangeTo - rangeFrom + 1}</p>`;
+
+                if (missingFiles.length > 0) {
+                    message += `<div class="missing-files">`;
+                    message += `<div class="missing-files-title">⚠️ Documentos Faltantes (${missingFiles.length})</div>`;
+                    message += `<div class="missing-files-list">`;
+                    message += missingFiles.map(num => `Documento ${num}`).join(', ');
+                    message += `</div></div>`;
+                } else {
+                    message += `<p style="color: #48bb78; font-weight: 600;">✓ Todos los documentos están presentes</p>`;
+                }
+
+                message += `<p style="margin-top: 1rem; color: #c53030;"><strong>Base de datos:</strong> Error de comunicación con el servidor.</p>`;
+
+                document.getElementById('modalBody').innerHTML = message;
+                document.getElementById('modal').style.display = 'flex';
+            });
+        }
+
+        function closeModal() {
+            document.getElementById('modal').style.display = 'none';
+        }
+
+        // Cerrar modal al hacer clic fuera
+        document.getElementById('modal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+    </script>
+</body>
+</html>

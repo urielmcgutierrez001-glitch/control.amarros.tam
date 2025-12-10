@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amarros Pendientes de Revisión</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2.5rem;
+            max-width: 900px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            color: #2d3748;
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #718096;
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .nav-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .backup-group {
+            display: flex;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .actions-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .status-text {
+            color: #4a5568;
+            font-size: 0.9rem;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .amarros-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+
+        .amarros-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .amarros-list::-webkit-scrollbar-track {
+            background: #edf2f7;
+            border-radius: 10px;
+        }
+
+        .amarros-list::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 10px;
+        }
+
+        .amarros-list::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+
+        .amarro-card {
+            background: #f7fafc;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            gap: 1rem;
+        }
+
+        .amarro-checkbox-wrapper {
+            display: flex;
+            align-items: flex-start;
+            padding-top: 0.3rem;
+        }
+
+        .amarro-checkbox-wrapper input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            accent-color: #48bb78;
+        }
+
+        .amarro-content {
+            flex: 1;
+        }
+
+        .amarro-header {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            gap: 0.5rem 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .amarro-title {
+            font-weight: 700;
+            color: #2d3748;
+        }
+
+        .amarro-meta {
+            font-size: 0.9rem;
+            color: #4a5568;
+        }
+
+        .amarro-meta span {
+            display: inline-block;
+            margin-right: 1rem;
+        }
+
+        .missing-block {
+            background: #fff5f5;
+            border-left: 4px solid #fc8181;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            margin-top: 0.5rem;
+            color: #742a2a;
+            font-size: 0.9rem;
+        }
+
+        .missing-title {
+            font-weight: 600;
+            color: #c53030;
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .missing-list {
+            margin-left: 1.5rem;
+        }
+
+        .all-present {
+            margin-top: 0.5rem;
+            color: #2f855a;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #a0aec0;
+            padding: 2rem 1rem;
+            font-style: italic;
+        }
+
+        .error-message {
+            margin-top: 0.5rem;
+            color: #c53030;
+            font-size: 0.85rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Amarros Pendientes</h1>
+        <p class="subtitle">Revisa y marca como completados los amarros que ya han sido verificados físicamente.</p>
+
+        <div class="top-bar">
+            <div class="nav-group">
+                <button class="btn" type="button" onclick="window.location.href='index.html'">Nueva revisión de amarro</button>
+            </div>
+            <div class="backup-group">
+                <button class="btn" type="button" onclick="downloadSqlBackup()">Descargar backup SQL</button>
+                <button class="btn" type="button" onclick="downloadExcelBackup()">Descargar backup Excel</button>
+            </div>
+        </div>
+
+        <div class="actions-bar">
+            <div class="status-text" id="statusText">Cargando amarros pendientes...</div>
+            <button class="btn" id="completeBtn" disabled>Marcar seleccionados como completados</button>
+        </div>
+
+        <div id="amarrosList" class="amarros-list"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAmarros();
+            document.getElementById('completeBtn').addEventListener('click', markCompleted);
+        });
+
+        function loadAmarros() {
+            const statusText = document.getElementById('statusText');
+            const list = document.getElementById('amarrosList');
+            const completeBtn = document.getElementById('completeBtn');
+
+            statusText.textContent = 'Cargando amarros pendientes...';
+            completeBtn.disabled = true;
+            list.innerHTML = '';
+
+            fetch('obtener_amarros_pendientes.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data || !data.success) {
+                        statusText.textContent = 'No se pudieron cargar los amarros pendientes.';
+                        const msg = document.createElement('div');
+                        msg.className = 'error-message';
+                        msg.textContent = data && data.message ? data.message : 'Error desconocido.';
+                        list.appendChild(msg);
+                        return;
+                    }
+
+                    const amarros = data.amarros || [];
+
+                    if (amarros.length === 0) {
+                        statusText.textContent = 'No hay amarros pendientes.';
+                        const empty = document.createElement('div');
+                        empty.className = 'empty-state';
+                        empty.textContent = 'Actualmente no tienes amarros con estado PENDIENTE.';
+                        list.appendChild(empty);
+                        return;
+                    }
+
+                    statusText.textContent = `${amarros.length} amarro(s) pendiente(s) encontrados.`;
+                    completeBtn.disabled = false;
+
+                    amarros.forEach(amarro => {
+                        const card = document.createElement('div');
+                        card.className = 'amarro-card';
+
+                        const checkboxWrapper = document.createElement('div');
+                        checkboxWrapper.className = 'amarro-checkbox-wrapper';
+                        const checkbox = document.createElement('input');
+                        checkbox.type = 'checkbox';
+                        checkbox.className = 'amarro-checkbox';
+                        checkbox.dataset.id = amarro.id;
+                        checkboxWrapper.appendChild(checkbox);
+
+                        const content = document.createElement('div');
+                        content.className = 'amarro-content';
+
+                        const header = document.createElement('div');
+                        header.className = 'amarro-header';
+
+                        const title = document.createElement('div');
+                        title.className = 'amarro-title';
+                        title.textContent = `Amarro: ${amarro.codigo_amarro}`;
+
+                        const meta = document.createElement('div');
+                        meta.className = 'amarro-meta';
+                        meta.innerHTML = `
+                            <span><strong>Año:</strong> ${amarro.anio ?? ''}</span>
+                            <span><strong>Rango:</strong> Desde ${amarro.rango_inicio} hasta ${amarro.rango_fin}</span>
+                            <span><strong>Total de documentos:</strong> ${amarro.total_documentos}</span>
+                        `;
+
+                        header.appendChild(title);
+                        header.appendChild(meta);
+                        content.appendChild(header);
+
+                        if (amarro.documentos_faltantes && amarro.documentos_faltantes.length > 0) {
+                            const missingBlock = document.createElement('div');
+                            missingBlock.className = 'missing-block';
+
+                            const missingTitle = document.createElement('div');
+                            missingTitle.className = 'missing-title';
+                            missingTitle.innerHTML = `⚠️ <span>Documentos Faltantes (${amarro.documentos_faltantes.length})</span>`;
+
+                            const missingList = document.createElement('div');
+                            missingList.className = 'missing-list';
+                            missingList.textContent = amarro.documentos_faltantes.map(num => `Documento ${num}`).join(', ');
+
+                            missingBlock.appendChild(missingTitle);
+                            missingBlock.appendChild(missingList);
+                            content.appendChild(missingBlock);
+                        } else {
+                            const allPresent = document.createElement('div');
+                            allPresent.className = 'all-present';
+                            allPresent.textContent = '✓ Todos los documentos están presentes';
+                            content.appendChild(allPresent);
+                        }
+
+                        card.appendChild(checkboxWrapper);
+                        card.appendChild(content);
+                        list.appendChild(card);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error al cargar amarros pendientes:', error);
+                    statusText.textContent = 'No se pudieron cargar los amarros pendientes.';
+                    const msg = document.createElement('div');
+                    msg.className = 'error-message';
+                    msg.textContent = 'Error de comunicación con el servidor.';
+                    list.appendChild(msg);
+                });
+        }
+
+        function markCompleted() {
+            const checkboxes = document.querySelectorAll('.amarro-checkbox:checked');
+            const ids = Array.from(checkboxes).map(cb => parseInt(cb.dataset.id));
+
+            if (ids.length === 0) {
+                alert('Selecciona al menos un amarro para marcarlo como completado.');
+                return;
+            }
+
+            if (!confirm(`¿Marcar ${ids.length} amarro(s) como COMPLETADO?`)) {
+                return;
+            }
+
+            const completeBtn = document.getElementById('completeBtn');
+            const statusText = document.getElementById('statusText');
+            completeBtn.disabled = true;
+            statusText.textContent = 'Actualizando estado de amarros...';
+
+            fetch('actualizar_estado_amarros.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    amarros_ids: ids,
+                    estado: 'COMPLETADO'
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data || !data.success) {
+                        alert(data && data.message ? data.message : 'No se pudo actualizar el estado de los amarros.');
+                        statusText.textContent = 'Error al actualizar amarros.';
+                        completeBtn.disabled = false;
+                        return;
+                    }
+
+                    alert('Estado actualizado correctamente.');
+                    loadAmarros();
+                })
+                .catch(error => {
+                    console.error('Error al actualizar amarros:', error);
+                    alert('Error de comunicación con el servidor.');
+                    statusText.textContent = 'Error al actualizar amarros.';
+                    completeBtn.disabled = false;
+                });
+        }
+
+        function downloadSqlBackup() {
+            window.location.href = 'backup_sql.php';
+        }
+
+        function downloadExcelBackup() {
+            window.location.href = 'backup_excel.php';
+        }
+    </script>
+</body>
+</html>
