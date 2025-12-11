@@ -19,9 +19,12 @@ fputcsv($out, [
     'codigo_amarro',
     'anio_del_amarro',
     'tipo_documento',
+    'revisor',
     'numero_documento',
     'existe_fisicamente',
-    'fecha_revision',
+    'fecha_revision_documento',
+    'observaciones_documento',
+    'fecha_creacion_amarro',
 ], ';');
 
 try {
@@ -34,9 +37,12 @@ try {
                 a.codigo_amarro,
                 a.`año` AS anio_del_amarro,
                 a.tipo_documento,
+                a.ubicacion AS revisor,
                 d.numero_documento,
                 d.existe_fisicamente,
-                d.fecha_revision
+                d.fecha_revision AS fecha_revision_documento,
+                d.observaciones AS observaciones_documento,
+                a.fecha_creacion AS fecha_creacion_amarro
             FROM amarros a
             JOIN documentos d ON a.id = d.amarro_id
             ORDER BY a.`año` ASC, a.codigo_amarro ASC, d.numero_documento ASC';
@@ -46,9 +52,12 @@ try {
             $row['codigo_amarro'],
             $row['anio_del_amarro'],
             $row['tipo_documento'],
+            $row['revisor'],
             $row['numero_documento'],
             $row['existe_fisicamente'],
-            $row['fecha_revision'],
+            $row['fecha_revision_documento'],
+            $row['observaciones_documento'],
+            $row['fecha_creacion_amarro'],
         ], ';');
     }
 } catch (Exception $e) {

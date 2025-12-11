@@ -32,7 +32,10 @@ try {
                 a.fecha_creacion,
                 a.estado,
                 a.observaciones,
-                GROUP_CONCAT(CASE WHEN d.existe_fisicamente = 0 THEN d.numero_documento END ORDER BY d.numero_documento SEPARATOR ",") AS documentos_faltantes
+                GROUP_CONCAT(CASE WHEN d.existe_fisicamente = 0 AND d.numero_documento BETWEEN a.rango_inicio AND a.rango_fin THEN d.numero_documento END ORDER BY d.numero_documento SEPARATOR ",") AS documentos_faltantes,
+                GROUP_CONCAT(CASE WHEN d.existe_fisicamente = 0 AND d.numero_documento BETWEEN a.rango_inicio AND a.rango_fin THEN CONCAT(d.numero_documento, ":", d.id, ":", COALESCE(d.observaciones, "")) END ORDER BY d.numero_documento SEPARATOR "||") AS documentos_faltantes_detalle,
+                GROUP_CONCAT(CASE WHEN d.numero_documento NOT BETWEEN a.rango_inicio AND a.rango_fin THEN CONCAT(d.numero_documento, ":", d.id, ":", COALESCE(d.observaciones, "")) END ORDER BY d.numero_documento SEPARATOR "||") AS documentos_adicionales_detalle,
+                GROUP_CONCAT(CASE WHEN d.observaciones IS NOT NULL AND (d.observaciones LIKE "%Anulado%" OR d.observaciones LIKE "%No utilizado%") THEN CONCAT(d.numero_documento, ":", d.id, ":", d.observaciones) END ORDER BY d.numero_documento SEPARATOR "||") AS documentos_estado_detalle
             FROM amarros a
             LEFT JOIN documentos d ON d.amarro_id = a.id
             WHERE a.estado = "PENDIENTE"
@@ -45,12 +48,61 @@ try {
     $amarros = [];
     foreach ($rows as $row) {
         $missing = [];
+        $missingDetails = [];
+        $additionalDetails = [];
+        $statusDetails = [];
+        
         if (!empty($row['documentos_faltantes'])) {
             $parts = explode(',', $row['documentos_faltantes']);
             foreach ($parts as $p) {
                 $p = trim($p);
                 if ($p !== '') {
                     $missing[] = (int) $p;
+                }
+            }
+        }
+        
+        // Parsear detalles de documentos faltantes (dentro del rango)
+        if (!empty($row['documentos_faltantes_detalle'])) {
+            $details = explode('||', $row['documentos_faltantes_detalle']);
+            foreach ($details as $detail) {
+                $parts = explode(':', $detail, 3);
+                if (count($parts) === 3) {
+                    $missingDetails[] = [
+                        'numero' => (int) $parts[0],
+                        'id' => (int) $parts[1],
+                        'observaciones' => $parts[2] !== '' ? $parts[2] : null
+                    ];
+                }
+            }
+        }
+        
+        // Parsear documentos adicionales (fuera del rango)
+        if (!empty($row['documentos_adicionales_detalle'])) {
+            $details = explode('||', $row['documentos_adicionales_detalle']);
+            foreach ($details as $detail) {
+                $parts = explode(':', $detail, 3);
+                if (count($parts) === 3) {
+                    $additionalDetails[] = [
+                        'numero' => (int) $parts[0],
+                        'id' => (int) $parts[1],
+                        'observaciones' => $parts[2] !== '' ? $parts[2] : null
+                    ];
+                }
+            }
+        }
+        
+        // Parsear documentos con estado (Anulado/No utilizado)
+        if (!empty($row['documentos_estado_detalle'])) {
+            $details = explode('||', $row['documentos_estado_detalle']);
+            foreach ($details as $detail) {
+                $parts = explode(':', $detail, 3);
+                if (count($parts) === 3) {
+                    $statusDetails[] = [
+                        'numero' => (int) $parts[0],
+                        'id' => (int) $parts[1],
+                        'observaciones' => $parts[2] !== '' ? $parts[2] : null
+                    ];
                 }
             }
         }
@@ -67,6 +119,9 @@ try {
             'estado' => $row['estado'],
             'observaciones' => $row['observaciones'],
             'documentos_faltantes' => $missing,
+            'documentos_faltantes_detalle' => $missingDetails,
+            'documentos_adicionales_detalle' => $additionalDetails,
+            'documentos_estado_detalle' => $statusDetails,
         ];
     }
 

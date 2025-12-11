@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -38,6 +39,7 @@
                 opacity: 0;
                 transform: translateY(-20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -160,7 +162,7 @@
 
         .checklist-item {
             display: flex;
-            align-items: center;
+            flex-direction: column;
             padding: 0.75rem;
             margin-bottom: 0.5rem;
             background: white;
@@ -171,27 +173,47 @@
 
         .checklist-item:hover {
             border-color: #667eea;
-            transform: translateX(5px);
         }
 
-        .checklist-item input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
-            margin-right: 1rem;
+        .doc-header {
+            font-weight: 600;
+            color: #2d3748;
+            margin-bottom: 0.5rem;
+        }
+
+        .doc-checkboxes {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .checkbox-group input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
             cursor: pointer;
             accent-color: #667eea;
         }
 
-        .checklist-item label {
+        .checkbox-group label {
             margin: 0;
             cursor: pointer;
-            color: #2d3748;
+            color: #4a5568;
             font-weight: 500;
+            font-size: 0.9rem;
         }
 
-        .checklist-item input[type="checkbox"]:checked + label {
-            text-decoration: line-through;
-            color: #a0aec0;
+        .checkbox-anulado input[type="checkbox"] {
+            accent-color: #fc8181;
+        }
+
+        .checkbox-no-utilizado input[type="checkbox"] {
+            accent-color: #f6ad55;
         }
 
         .empty-state {
@@ -217,8 +239,13 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         .modal-content {
@@ -237,6 +264,7 @@
                 opacity: 0;
                 transform: scale(0.9) translateY(-20px);
             }
+
             to {
                 opacity: 1;
                 transform: scale(1) translateY(0);
@@ -312,13 +340,20 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>📦 Sistema de Revisión de Amarros</h1>
         <p class="subtitle">Control y seguimiento de documentos</p>
 
         <div class="form-group">
-            <button class="btn" type="button" onclick="window.location.href='amarros-pendientes.html'">Ver amarros pendientes</button>
+            <button class="btn" type="button" onclick="window.location.href='amarros-pendientes.html'">Ver amarros
+                pendientes</button>
+        </div>
+
+        <div class="form-group">
+            <button class="btn" type="button" onclick="window.location.href='gestionar-amarros.html'"
+                style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">Gestionar amarros</button>
         </div>
 
         <div class="form-group">
@@ -329,6 +364,11 @@
         <div class="form-group">
             <label for="year">Año</label>
             <input type="number" id="year" min="1900" max="2100" placeholder="2025">
+        </div>
+
+        <div class="form-group">
+            <label for="reviewer">Revisor</label>
+            <input type="text" id="reviewer" placeholder="Escribe tu nombre">
         </div>
 
         <div class="range-inputs">
@@ -348,6 +388,15 @@
             <div id="checklistItems"></div>
         </div>
 
+        <button id="addExtraDocBtn" class="btn hidden" onclick="showExtraDocModal()"
+            style="background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%); margin-top: 1rem;">➕ Agregar documento
+            fuera de rango</button>
+
+        <div id="extraDocsContainer" class="hidden" style="margin-top: 1.5rem;">
+            <h3 style="color: #2d3748; font-size: 1.1rem; margin-bottom: 0.75rem;">Documentos Adicionales</h3>
+            <div id="extraDocsList" style="display: flex; flex-direction: column; gap: 0.5rem;"></div>
+        </div>
+
         <button id="saveBtn" class="btn btn-success hidden" onclick="saveRevision()">Guardar Revisión</button>
     </div>
 
@@ -359,6 +408,30 @@
             </div>
             <div class="modal-body" id="modalBody"></div>
             <button class="btn btn-close" onclick="closeModal()">Cerrar</button>
+        </div>
+    </div>
+
+    <!-- Modal para agregar documento fuera de rango -->
+    <div id="extraDocModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div class="modal-icon" style="background: linear-gradient(135deg, #ed8936 0%, #dd6b20 100%);">📄</div>
+                <div class="modal-title">Agregar Documento Fuera de Rango</div>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="extraDocNumber">Número de Documento</label>
+                    <input type="number" id="extraDocNumber" placeholder="Ej: 999">
+                </div>
+                <div class="form-group">
+                    <label for="extraDocObs">Observación</label>
+                    <input type="text" id="extraDocObs" placeholder="Motivo o nota sobre este documento">
+                </div>
+            </div>
+            <div style="display: flex; gap: 0.5rem;">
+                <button class="btn" onclick="addExtraDocument()">Agregar</button>
+                <button class="btn btn-close" onclick="closeExtraDocModal()">Cancelar</button>
+            </div>
         </div>
     </div>
 
@@ -403,28 +476,69 @@
             for (let i = rangeFrom; i <= rangeTo; i++) {
                 const itemDiv = document.createElement('div');
                 itemDiv.className = 'checklist-item';
-                
-                const checkbox = document.createElement('input');
-                checkbox.type = 'checkbox';
-                checkbox.id = `file-${i}`;
-                checkbox.checked = true; // Por defecto marcados (archivo presente)
-                
-                const label = document.createElement('label');
-                label.htmlFor = `file-${i}`;
-                label.textContent = `Documento ${i}`;
-                
-                itemDiv.appendChild(checkbox);
-                itemDiv.appendChild(label);
+
+                const header = document.createElement('div');
+                header.className = 'doc-header';
+                header.textContent = `Documento ${i}`;
+
+                const checkboxesContainer = document.createElement('div');
+                checkboxesContainer.className = 'doc-checkboxes';
+
+                // Checkbox 1: Existe físicamente
+                const group1 = document.createElement('div');
+                group1.className = 'checkbox-group';
+                const checkbox1 = document.createElement('input');
+                checkbox1.type = 'checkbox';
+                checkbox1.id = `file-${i}`;
+                checkbox1.checked = true;
+                const label1 = document.createElement('label');
+                label1.htmlFor = `file-${i}`;
+                label1.textContent = 'Existe físicamente';
+                group1.appendChild(checkbox1);
+                group1.appendChild(label1);
+
+                // Checkbox 2: Anulado
+                const group2 = document.createElement('div');
+                group2.className = 'checkbox-group checkbox-anulado';
+                const checkbox2 = document.createElement('input');
+                checkbox2.type = 'checkbox';
+                checkbox2.id = `anulado-${i}`;
+                const label2 = document.createElement('label');
+                label2.htmlFor = `anulado-${i}`;
+                label2.textContent = 'Anulado';
+                group2.appendChild(checkbox2);
+                group2.appendChild(label2);
+
+                // Checkbox 3: No utilizado
+                const group3 = document.createElement('div');
+                group3.className = 'checkbox-group checkbox-no-utilizado';
+                const checkbox3 = document.createElement('input');
+                checkbox3.type = 'checkbox';
+                checkbox3.id = `no-utilizado-${i}`;
+                const label3 = document.createElement('label');
+                label3.htmlFor = `no-utilizado-${i}`;
+                label3.textContent = 'No utilizado';
+                group3.appendChild(checkbox3);
+                group3.appendChild(label3);
+
+                checkboxesContainer.appendChild(group1);
+                checkboxesContainer.appendChild(group2);
+                checkboxesContainer.appendChild(group3);
+
+                itemDiv.appendChild(header);
+                itemDiv.appendChild(checkboxesContainer);
                 itemsContainer.appendChild(itemDiv);
             }
 
             container.classList.remove('hidden');
             document.getElementById('saveBtn').classList.remove('hidden');
+            document.getElementById('addExtraDocBtn').classList.remove('hidden');
         }
 
         function saveRevision() {
             const packageName = document.getElementById('packageName').value.trim();
             const year = parseInt(document.getElementById('year').value);
+            const reviewer = document.getElementById('reviewer').value.trim();
             const rangeFrom = parseInt(document.getElementById('rangeFrom').value);
             const rangeTo = parseInt(document.getElementById('rangeTo').value);
 
@@ -437,16 +551,30 @@
             const missingFiles = [];
             const documents = [];
             for (let i = rangeFrom; i <= rangeTo; i++) {
-                const checkbox = document.getElementById(`file-${i}`);
-                const exists = checkbox && checkbox.checked ? 1 : 0; // 1 = existe físicamente, 0 = no existe
+                const checkboxExiste = document.getElementById(`file-${i}`);
+                const checkboxAnulado = document.getElementById(`anulado-${i}`);
+                const checkboxNoUtilizado = document.getElementById(`no-utilizado-${i}`);
 
-                if (checkbox && !checkbox.checked) {
+                const exists = checkboxExiste && checkboxExiste.checked ? 1 : 0;
+
+                // Construir observaciones basado en los estados
+                let observaciones = [];
+                if (checkboxAnulado && checkboxAnulado.checked) {
+                    observaciones.push('Anulado');
+                }
+                if (checkboxNoUtilizado && checkboxNoUtilizado.checked) {
+                    observaciones.push('No utilizado');
+                }
+                const obsText = observaciones.length > 0 ? observaciones.join(', ') : null;
+
+                if (checkboxExiste && !checkboxExiste.checked) {
                     missingFiles.push(i);
                 }
 
                 documents.push({
                     numero_documento: i,
-                    existe_fisicamente: exists
+                    existe_fisicamente: exists,
+                    observaciones: obsText
                 });
             }
 
@@ -459,61 +587,63 @@
                 body: JSON.stringify({
                     codigo_amarro: packageName,
                     anio: year,
+                    revisor: reviewer,
                     rango_inicio: rangeFrom,
                     rango_fin: rangeTo,
-                    documentos: documents
+                    documentos: documents,
+                    documentos_adicionales: extraDocuments
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                // Construir mensaje
-                let message = `<p><strong>Amarro:</strong> ${packageName}</p>`;
-                message += `<p><strong>Año:</strong> ${year}</p>`;
-                message += `<p><strong>Rango:</strong> Desde ${rangeFrom} hasta ${rangeTo}</p>`;
-                message += `<p><strong>Total de documentos:</strong> ${rangeTo - rangeFrom + 1}</p>`;
+                .then(response => response.json())
+                .then(data => {
+                    // Construir mensaje
+                    let message = `<p><strong>Amarro:</strong> ${packageName}</p>`;
+                    message += `<p><strong>Año:</strong> ${year}</p>`;
+                    message += `<p><strong>Rango:</strong> Desde ${rangeFrom} hasta ${rangeTo}</p>`;
+                    message += `<p><strong>Total de documentos:</strong> ${rangeTo - rangeFrom + 1}</p>`;
 
-                if (missingFiles.length > 0) {
-                    message += `<div class="missing-files">`;
-                    message += `<div class="missing-files-title">⚠️ Documentos Faltantes (${missingFiles.length})</div>`;
-                    message += `<div class="missing-files-list">`;
-                    message += missingFiles.map(num => `Documento ${num}`).join(', ');
-                    message += `</div></div>`;
-                } else {
-                    message += `<p style="color: #48bb78; font-weight: 600;">✓ Todos los documentos están presentes</p>`;
-                }
+                    if (missingFiles.length > 0) {
+                        message += `<div class="missing-files">`;
+                        message += `<div class="missing-files-title">⚠️ Documentos Faltantes (${missingFiles.length})</div>`;
+                        message += `<div class="missing-files-list">`;
+                        message += missingFiles.map(num => `Documento ${num}`).join(', ');
+                        message += `</div></div>`;
+                    } else {
+                        message += `<p style="color: #48bb78; font-weight: 600;">✓ Todos los documentos están presentes</p>`;
+                    }
 
-                if (data && data.success) {
-                    message += `<p style="margin-top: 1rem; color: #2b6cb0;"><strong>Base de datos:</strong> Revisión guardada correctamente (ID amarro: ${data.amarro_id}).</p>`;
-                } else {
-                    message += `<p style="margin-top: 1rem; color: #c53030;"><strong>Base de datos:</strong> No se pudo guardar la revisión. ${data && data.message ? data.message : ''}</p>`;
-                }
+                    if (data && data.success) {
+                        message += `<p style="margin-top: 1rem; color: #2b6cb0;"><strong>Base de datos:</strong> Revisión guardada correctamente (ID amarro: ${data.amarro_id}).</p>`;
+                    } else {
+                        message += `<p style="margin-top: 1rem; color: #c53030;"><strong>Base de datos:</strong> No se pudo guardar la revisión. ${data && data.message ? data.message : ''}</p>`;
+                    }
 
-                // Mostrar modal
-                document.getElementById('modalBody').innerHTML = message;
-                document.getElementById('modal').style.display = 'flex';
-            })
-            .catch(error => {
-                console.error('Error al guardar la revisión:', error);
-                let message = `<p><strong>Amarro:</strong> ${packageName}</p>`;
-                message += `<p><strong>Año:</strong> ${year}</p>`;
-                message += `<p><strong>Rango:</strong> Desde ${rangeFrom} hasta ${rangeTo}</p>`;
-                message += `<p><strong>Total de documentos:</strong> ${rangeTo - rangeFrom + 1}</p>`;
+                    // Mostrar modal
+                    document.getElementById('modalBody').innerHTML = message;
+                    document.getElementById('modal').style.display = 'flex';
+                })
+                .catch(error => {
+                    console.error('Error al guardar la revisión:', error);
+                    let message = `<p><strong>Amarro:</strong> ${packageName}</p>`;
+                    message += `<p><strong>Año:</strong> ${year}</p>`;
+                    message += `<p><strong>Rango:</strong> Desde ${rangeFrom} hasta ${rangeTo}</p>`;
+                    message += `<p><strong>Total de documentos:</strong> ${rangeTo - rangeFrom + 1}</p>`;
 
-                if (missingFiles.length > 0) {
-                    message += `<div class="missing-files">`;
-                    message += `<div class="missing-files-title">⚠️ Documentos Faltantes (${missingFiles.length})</div>`;
-                    message += `<div class="missing-files-list">`;
-                    message += missingFiles.map(num => `Documento ${num}`).join(', ');
-                    message += `</div></div>`;
-                } else {
-                    message += `<p style="color: #48bb78; font-weight: 600;">✓ Todos los documentos están presentes</p>`;
-                }
+                    if (missingFiles.length > 0) {
+                        message += `<div class="missing-files">`;
+                        message += `<div class="missing-files-title">⚠️ Documentos Faltantes (${missingFiles.length})</div>`;
+                        message += `<div class="missing-files-list">`;
+                        message += missingFiles.map(num => `Documento ${num}`).join(', ');
+                        message += `</div></div>`;
+                    } else {
+                        message += `<p style="color: #48bb78; font-weight: 600;">✓ Todos los documentos están presentes</p>`;
+                    }
 
-                message += `<p style="margin-top: 1rem; color: #c53030;"><strong>Base de datos:</strong> Error de comunicación con el servidor.</p>`;
+                    message += `<p style="margin-top: 1rem; color: #c53030;"><strong>Base de datos:</strong> Error de comunicación con el servidor.</p>`;
 
-                document.getElementById('modalBody').innerHTML = message;
-                document.getElementById('modal').style.display = 'flex';
-            });
+                    document.getElementById('modalBody').innerHTML = message;
+                    document.getElementById('modal').style.display = 'flex';
+                });
         }
 
         function closeModal() {
@@ -521,11 +651,92 @@
         }
 
         // Cerrar modal al hacer clic fuera
-        document.getElementById('modal').addEventListener('click', function(e) {
+        document.getElementById('modal').addEventListener('click', function (e) {
             if (e.target === this) {
                 closeModal();
             }
         });
+
+        // Manejo de documentos fuera de rango
+        let extraDocuments = [];
+
+        function showExtraDocModal() {
+            document.getElementById('extraDocModal').style.display = 'flex';
+            document.getElementById('extraDocNumber').value = '';
+            document.getElementById('extraDocObs').value = '';
+        }
+
+        function closeExtraDocModal() {
+            document.getElementById('extraDocModal').style.display = 'none';
+        }
+
+        function addExtraDocument() {
+            const number = parseInt(document.getElementById('extraDocNumber').value);
+            const obs = document.getElementById('extraDocObs').value.trim();
+
+            if (isNaN(number)) {
+                alert('Por favor, ingresa un número de documento válido');
+                return;
+            }
+
+            // Verificar si ya existe
+            const exists = extraDocuments.find(doc => doc.numero_documento === number);
+            if (exists) {
+                alert('Este documento ya fue agregado');
+                return;
+            }
+
+            extraDocuments.push({
+                numero_documento: number,
+                observaciones: obs
+            });
+
+            updateExtraDocsList();
+            closeExtraDocModal();
+        }
+
+        function removeExtraDocument(number) {
+            extraDocuments = extraDocuments.filter(doc => doc.numero_documento !== number);
+            updateExtraDocsList();
+        }
+
+        function updateExtraDocsList() {
+            const container = document.getElementById('extraDocsContainer');
+            const list = document.getElementById('extraDocsList');
+
+            if (extraDocuments.length === 0) {
+                container.classList.add('hidden');
+                return;
+            }
+
+            container.classList.remove('hidden');
+            list.innerHTML = '';
+
+            extraDocuments.forEach(doc => {
+                const item = document.createElement('div');
+                item.style.cssText = 'background: #fff5e6; border-left: 4px solid #ed8936; padding: 0.75rem; border-radius: 8px; display: flex; justify-content: space-between; align-items: center;';
+
+                const info = document.createElement('div');
+                info.innerHTML = `<strong>Documento ${doc.numero_documento}</strong>${doc.observaciones ? ': ' + doc.observaciones : ''}`;
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.textContent = '🗑️';
+                deleteBtn.style.cssText = 'background: #fc8181; color: white; border: none; padding: 0.25rem 0.5rem; border-radius: 6px; cursor: pointer; font-size: 0.9rem;';
+                deleteBtn.onclick = () => removeExtraDocument(doc.numero_documento);
+
+                item.appendChild(info);
+                item.appendChild(deleteBtn);
+                list.appendChild(item);
+            });
+        }
+
+        // Cerrar modal de extra doc al hacer clic fuera
+        document.getElementById('extraDocModal').addEventListener('click', function (e) {
+            if (e.target === this) {
+                closeExtraDocModal();
+            }
+        });
     </script>
 </body>
+
 </html>

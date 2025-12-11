@@ -16,9 +16,11 @@ if (!$input) {
 
 $codigoAmarro = $input['codigo_amarro'] ?? null;
 $anio         = isset($input['anio']) ? (int) $input['anio'] : 0;
+$revisor      = $input['revisor'] ?? '';
 $rangoInicio  = $input['rango_inicio'] ?? null;
 $rangoFin     = $input['rango_fin'] ?? null;
 $documentos   = $input['documentos'] ?? null;
+$documentosAdicionales = $input['documentos_adicionales'] ?? [];
 
 if (!$codigoAmarro || !is_array($documentos) || $rangoInicio === null || $rangoFin === null || $anio <= 0) {
     http_response_code(400);
@@ -43,20 +45,21 @@ try {
 
     $pdo->beginTransaction();
 
-    $totalDocumentos = count($documentos);
+    $totalDocumentos = count($documentos) + count($documentosAdicionales);
 
-    $stmtAmarro = $pdo->prepare('INSERT INTO amarros (codigo_amarro, `año`, rango_inicio, rango_fin, total_documentos) VALUES (?, ?, ?, ?, ?)');
+    $stmtAmarro = $pdo->prepare('INSERT INTO amarros (codigo_amarro, `año`, rango_inicio, rango_fin, total_documentos, ubicacion) VALUES (?, ?, ?, ?, ?, ?)');
     $stmtAmarro->execute([
         $codigoAmarro,
         (int) $anio,
         (int) $rangoInicio,
         (int) $rangoFin,
         (int) $totalDocumentos,
+        $revisor,
     ]);
 
     $amarroId = (int) $pdo->lastInsertId();
 
-    $stmtDocumento = $pdo->prepare('INSERT INTO documentos (amarro_id, numero_documento, existe_fisicamente) VALUES (?, ?, ?)');
+    $stmtDocumento = $pdo->prepare('INSERT INTO documentos (amarro_id, numero_documento, existe_fisicamente, observaciones) VALUES (?, ?, ?, ?)');
 
     foreach ($documentos as $doc) {
         if (!isset($doc['numero_documento'])) {
@@ -65,11 +68,30 @@ try {
 
         $numero = (int) $doc['numero_documento'];
         $existe = !empty($doc['existe_fisicamente']) ? 1 : 0;
+        $observaciones = $doc['observaciones'] ?? null;
 
         $stmtDocumento->execute([
             $amarroId,
             $numero,
             $existe,
+            $observaciones,
+        ]);
+    }
+
+    // Procesar documentos adicionales (fuera de rango)
+    foreach ($documentosAdicionales as $doc) {
+        if (!isset($doc['numero_documento'])) {
+            continue;
+        }
+
+        $numero = (int) $doc['numero_documento'];
+        $observaciones = $doc['observaciones'] ?? '';
+
+        $stmtDocumento->execute([
+            $amarroId,
+            $numero,
+            0, // Por defecto no existe físicamente
+            $observaciones,
         ]);
     }
 

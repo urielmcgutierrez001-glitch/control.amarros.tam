@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionar Amarros</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 2rem;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 2.5rem;
+            max-width: 1000px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            color: #2d3748;
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #718096;
+            text-align: center;
+            margin-bottom: 2rem;
+            font-size: 0.95rem;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-family: 'Inter', sans-serif;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+            white-space: nowrap;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.5);
+        }
+
+        .status-text {
+            color: #4a5568;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+
+        .amarros-list {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+
+        .amarros-list::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .amarros-list::-webkit-scrollbar-track {
+            background: #edf2f7;
+            border-radius: 10px;
+        }
+
+        .amarros-list::-webkit-scrollbar-thumb {
+            background: #cbd5e0;
+            border-radius: 10px;
+        }
+
+        .amarros-list::-webkit-scrollbar-thumb:hover {
+            background: #a0aec0;
+        }
+
+        .amarro-card {
+            background: #f7fafc;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .amarro-card:hover {
+            border-color: #cbd5e0;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        .amarro-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 1rem;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .amarro-title {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #2d3748;
+        }
+
+        .amarro-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 0.75rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .info-item {
+            font-size: 0.9rem;
+            color: #4a5568;
+        }
+
+        .info-item strong {
+            color: #2d3748;
+            font-weight: 600;
+        }
+
+        .estado-badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .estado-pendiente {
+            background: #fef5e7;
+            color: #d68910;
+        }
+
+        .estado-completado {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .btn-delete {
+            background: linear-gradient(135deg, #fc8181 0%, #f56565 100%);
+            box-shadow: 0 4px 15px rgba(252, 129, 129, 0.4);
+            padding: 0.5rem 1.25rem;
+            font-size: 0.9rem;
+        }
+
+        .btn-delete:hover {
+            box-shadow: 0 6px 20px rgba(252, 129, 129, 0.5);
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #a0aec0;
+            padding: 3rem 1rem;
+            font-style: italic;
+        }
+
+        .error-message {
+            background: #fff5f5;
+            border-left: 4px solid #fc8181;
+            padding: 1rem;
+            border-radius: 8px;
+            color: #c53030;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🗂️ Gestionar Amarros</h1>
+        <p class="subtitle">Visualiza y gestiona todos los amarros registrados en el sistema</p>
+
+        <div class="top-bar">
+            <button class="btn" type="button" onclick="window.location.href='index.html'">← Volver al inicio</button>
+            <div class="status-text" id="statusText">Cargando amarros...</div>
+        </div>
+
+        <div id="amarrosList" class="amarros-list"></div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            loadAmarros();
+        });
+
+        function loadAmarros() {
+            const statusText = document.getElementById('statusText');
+            const list = document.getElementById('amarrosList');
+
+            statusText.textContent = 'Cargando amarros...';
+            list.innerHTML = '';
+
+            fetch('obtener_todos_amarros.php')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data || !data.success) {
+                        statusText.textContent = 'No se pudieron cargar los amarros.';
+                        const error = document.createElement('div');
+                        error.className = 'error-message';
+                        error.textContent = data && data.message ? data.message : 'Error desconocido.';
+                        list.appendChild(error);
+                        return;
+                    }
+
+                    const amarros = data.amarros || [];
+
+                    if (amarros.length === 0) {
+                        statusText.textContent = 'No hay amarros registrados.';
+                        const empty = document.createElement('div');
+                        empty.className = 'empty-state';
+                        empty.textContent = 'No hay amarros en la base de datos.';
+                        list.appendChild(empty);
+                        return;
+                    }
+
+                    statusText.textContent = `${amarros.length} amarro(s) encontrado(s)`;
+
+                    amarros.forEach(amarro => {
+                        const card = document.createElement('div');
+                        card.className = 'amarro-card';
+
+                        const header = document.createElement('div');
+                        header.className = 'amarro-header';
+
+                        const title = document.createElement('div');
+                        title.className = 'amarro-title';
+                        title.textContent = `📦 ${amarro.codigo_amarro}`;
+
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'btn btn-delete';
+                        deleteBtn.textContent = '🗑️ Eliminar';
+                        deleteBtn.onclick = () => deleteAmarro(amarro.id, amarro.codigo_amarro);
+
+                        header.appendChild(title);
+                        header.appendChild(deleteBtn);
+
+                        const info = document.createElement('div');
+                        info.className = 'amarro-info';
+                        info.innerHTML = `
+                            <div class="info-item"><strong>Año:</strong> ${amarro.anio ?? 'N/A'}</div>
+                            <div class="info-item"><strong>Rango:</strong> ${amarro.rango_inicio} - ${amarro.rango_fin}</div>
+                            <div class="info-item"><strong>Total documentos:</strong> ${amarro.total_documentos ?? 'N/A'}</div>
+                            <div class="info-item"><strong>Documentos faltantes:</strong> ${amarro.documentos_faltantes_count}</div>
+                            ${amarro.ubicacion ? `<div class="info-item"><strong>Revisor:</strong> ${amarro.ubicacion}</div>` : ''}
+                            <div class="info-item"><strong>Fecha creación:</strong> ${amarro.fecha_creacion ?? 'N/A'}</div>
+                            <div class="info-item"><strong>Estado:</strong> <span class="estado-badge estado-${amarro.estado.toLowerCase()}">${amarro.estado}</span></div>
+                        `;
+
+                        card.appendChild(header);
+                        card.appendChild(info);
+                        list.appendChild(card);
+                    });
+                })
+                .catch(error => {
+                    console.error('Error al cargar amarros:', error);
+                    statusText.textContent = 'Error de comunicación.';
+                    const errorDiv = document.createElement('div');
+                    errorDiv.className = 'error-message';
+                    errorDiv.textContent = 'Error de comunicación con el servidor.';
+                    list.appendChild(errorDiv);
+                });
+        }
+
+        function deleteAmarro(amarroId, codigoAmarro) {
+            if (!confirm(`¿Estás seguro de que deseas eliminar el amarro "${codigoAmarro}"?\n\n⚠️ ADVERTENCIA: Esta acción eliminará:\n- El amarro completo\n- Todos los documentos asociados\n\nEsta acción NO se puede deshacer.`)) {
+                return;
+            }
+
+            fetch('eliminar_amarro.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    amarro_id: amarroId
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data || !data.success) {
+                        alert('❌ Error: ' + (data && data.message ? data.message : 'No se pudo eliminar el amarro.'));
+                        return;
+                    }
+
+                    alert('✅ Amarro eliminado correctamente.');
+                    loadAmarros();
+                })
+                .catch(error => {
+                    console.error('Error al eliminar amarro:', error);
+                    alert('❌ Error de comunicación con el servidor.');
+                });
+        }
+    </script>
+</body>
+
+</html>

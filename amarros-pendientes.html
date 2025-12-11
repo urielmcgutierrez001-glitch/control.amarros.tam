@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -38,6 +39,7 @@
                 opacity: 0;
                 transform: translateY(-20px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -240,6 +242,7 @@
         }
     </style>
 </head>
+
 <body>
     <div class="container">
         <h1>Amarros Pendientes</h1>
@@ -247,9 +250,12 @@
 
         <div class="top-bar">
             <div class="nav-group">
-                <button class="btn" type="button" onclick="window.location.href='index.html'">Nueva revisión de amarro</button>
+                <button class="btn" type="button" onclick="window.location.href='index.html'">Nueva revisión de
+                    amarro</button>
             </div>
             <div class="backup-group">
+                <button class="btn" type="button" onclick="window.location.href='gestionar-amarros.html'">Gestionar
+                    amarros</button>
                 <button class="btn" type="button" onclick="downloadSqlBackup()">Descargar backup SQL</button>
                 <button class="btn" type="button" onclick="downloadExcelBackup()">Descargar backup Excel</button>
             </div>
@@ -332,28 +338,109 @@
                             <span><strong>Año:</strong> ${amarro.anio ?? ''}</span>
                             <span><strong>Rango:</strong> Desde ${amarro.rango_inicio} hasta ${amarro.rango_fin}</span>
                             <span><strong>Total de documentos:</strong> ${amarro.total_documentos}</span>
+                            ${amarro.ubicacion ? `<span><strong>Revisor:</strong> ${amarro.ubicacion}</span>` : ''}
                         `;
 
                         header.appendChild(title);
                         header.appendChild(meta);
                         content.appendChild(header);
 
-                        if (amarro.documentos_faltantes && amarro.documentos_faltantes.length > 0) {
+                        // SECCIÓN 1: Documentos Faltantes (dentro del rango)
+                        if (amarro.documentos_faltantes_detalle && amarro.documentos_faltantes_detalle.length > 0) {
                             const missingBlock = document.createElement('div');
                             missingBlock.className = 'missing-block';
 
                             const missingTitle = document.createElement('div');
                             missingTitle.className = 'missing-title';
-                            missingTitle.innerHTML = `⚠️ <span>Documentos Faltantes (${amarro.documentos_faltantes.length})</span>`;
+                            missingTitle.innerHTML = `⚠️ <span>Documentos Faltantes (${amarro.documentos_faltantes_detalle.length})</span>`;
 
                             const missingList = document.createElement('div');
                             missingList.className = 'missing-list';
-                            missingList.textContent = amarro.documentos_faltantes.map(num => `Documento ${num}`).join(', ');
+
+                            amarro.documentos_faltantes_detalle.forEach(doc => {
+                                const docItem = document.createElement('div');
+                                docItem.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 0.5rem 0; border-bottom: 1px solid #fee;';
+
+                                const docInfo = document.createElement('div');
+                                const obsText = doc.observaciones ? ` - ${doc.observaciones}` : '';
+                                const isPrestado = doc.observaciones && doc.observaciones.includes('Prestado');
+
+                                docInfo.innerHTML = `<strong>Documento ${doc.numero}</strong>${obsText}`;
+
+                                const btnPrestado = document.createElement('button');
+                                btnPrestado.style.cssText = 'background: #4299e1; color: white; border: none; padding: 0.25rem 0.75rem; border-radius: 6px; cursor: pointer; font-size: 0.85rem;';
+                                btnPrestado.textContent = isPrestado ? '✓ Prestado' : 'Marcar Prestado';
+                                btnPrestado.disabled = isPrestado;
+                                if (isPrestado) {
+                                    btnPrestado.style.background = '#9ae6b4';
+                                    btnPrestado.style.cursor = 'not-allowed';
+                                }
+
+                                btnPrestado.onclick = () => marcarPrestado(doc.id, doc.numero);
+
+                                docItem.appendChild(docInfo);
+                                docItem.appendChild(btnPrestado);
+                                missingList.appendChild(docItem);
+                            });
 
                             missingBlock.appendChild(missingTitle);
                             missingBlock.appendChild(missingList);
                             content.appendChild(missingBlock);
-                        } else {
+                        }
+
+                        // SECCIÓN 2: Documentos Adicionales (fuera del rango)
+                        if (amarro.documentos_adicionales_detalle && amarro.documentos_adicionales_detalle.length > 0) {
+                            const additionalBlock = document.createElement('div');
+                            additionalBlock.style.cssText = 'background: #e6f7ff; border-left: 4px solid #1890ff; padding: 0.75rem 1rem; border-radius: 8px; margin-top: 0.5rem;';
+
+                            const additionalTitle = document.createElement('div');
+                            additionalTitle.style.cssText = 'font-weight: 600; color: #0050b3; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.35rem;';
+                            additionalTitle.innerHTML = `📄 <span>Documentos Adicionales (${amarro.documentos_adicionales_detalle.length})</span>`;
+
+                            const additionalList = document.createElement('div');
+                            additionalList.style.cssText = 'margin-left: 1.5rem;';
+
+                            amarro.documentos_adicionales_detalle.forEach(doc => {
+                                const docItem = document.createElement('div');
+                                docItem.style.cssText = 'padding: 0.25rem 0; color: #003a8c;';
+                                const obsText = doc.observaciones ? ` - ${doc.observaciones}` : '';
+                                docItem.innerHTML = `<strong>Documento ${doc.numero}</strong>${obsText}`;
+                                additionalList.appendChild(docItem);
+                            });
+
+                            additionalBlock.appendChild(additionalTitle);
+                            additionalBlock.appendChild(additionalList);
+                            content.appendChild(additionalBlock);
+                        }
+
+                        // SECCIÓN 3: Documentos con Estado (Anulado/No utilizado)
+                        if (amarro.documentos_estado_detalle && amarro.documentos_estado_detalle.length > 0) {
+                            const statusBlock = document.createElement('div');
+                            statusBlock.style.cssText = 'background: #fff7e6; border-left: 4px solid #fa8c16; padding: 0.75rem 1rem; border-radius: 8px; margin-top: 0.5rem;';
+
+                            const statusTitle = document.createElement('div');
+                            statusTitle.style.cssText = 'font-weight: 600; color: #ad4e00; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.35rem;';
+                            statusTitle.innerHTML = `⚙️ <span>Documentos con Estado (${amarro.documentos_estado_detalle.length})</span>`;
+
+                            const statusList = document.createElement('div');
+                            statusList.style.cssText = 'margin-left: 1.5rem;';
+
+                            amarro.documentos_estado_detalle.forEach(doc => {
+                                const docItem = document.createElement('div');
+                                docItem.style.cssText = 'padding: 0.25rem 0; color: #7c4a03;';
+                                docItem.innerHTML = `<strong>Documento ${doc.numero}</strong> - ${doc.observaciones}`;
+                                statusList.appendChild(docItem);
+                            });
+
+                            statusBlock.appendChild(statusTitle);
+                            statusBlock.appendChild(statusList);
+                            content.appendChild(statusBlock);
+                        }
+
+                        // Mostrar "Todos presentes" solo si no hay ninguno de los 3 tipos
+                        if ((!amarro.documentos_faltantes_detalle || amarro.documentos_faltantes_detalle.length === 0) &&
+                            (!amarro.documentos_adicionales_detalle || amarro.documentos_adicionales_detalle.length === 0) &&
+                            (!amarro.documentos_estado_detalle || amarro.documentos_estado_detalle.length === 0)) {
                             const allPresent = document.createElement('div');
                             allPresent.className = 'all-present';
                             allPresent.textContent = '✓ Todos los documentos están presentes';
@@ -430,6 +517,37 @@
         function downloadExcelBackup() {
             window.location.href = 'backup_excel.php';
         }
+
+        function marcarPrestado(documentoId, numeroDocumento) {
+            if (!confirm(`¿Marcar el Documento ${numeroDocumento} como PRESTADO?`)) {
+                return;
+            }
+
+            fetch('marcar_prestado.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    documento_id: documentoId
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data || !data.success) {
+                        alert('❌ Error: ' + (data && data.message ? data.message : 'No se pudo marcar como prestado.'));
+                        return;
+                    }
+
+                    alert('✅ ' + data.message);
+                    loadAmarros();
+                })
+                .catch(error => {
+                    console.error('Error al marcar como prestado:', error);
+                    alert('❌ Error de comunicación con el servidor.');
+                });
+        }
     </script>
 </body>
+
 </html>
