@@ -211,6 +211,36 @@
             color: #c53030;
             margin-top: 1rem;
         }
+
+        .btn-change-state {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+            box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4);
+            padding: 0.5rem 1.25rem;
+            font-size: 0.9rem;
+            margin-right: 0.5rem;
+        }
+
+        .btn-change-state:hover {
+            box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
+        }
+
+        .btn-edit {
+            background: linear-gradient(135deg, #4299e1 0%, #3182ce 100%);
+            box-shadow: 0 4px 15px rgba(66, 153, 225, 0.4);
+            padding: 0.5rem 1.25rem;
+            font-size: 0.9rem;
+            margin-right: 0.5rem;
+        }
+
+        .btn-edit:hover {
+            box-shadow: 0 6px 20px rgba(66, 153, 225, 0.5);
+        }
+
+        .button-group {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+        }
     </style>
 </head>
 
@@ -221,6 +251,8 @@
 
         <div class="top-bar">
             <button class="btn" type="button" onclick="window.location.href='index.html'">← Volver al inicio</button>
+            <button class="btn" type="button" onclick="window.location.href='amarros-pendientes.html'">Amarros
+                Pendientes</button>
             <div class="status-text" id="statusText">Cargando amarros...</div>
         </div>
 
@@ -275,13 +307,33 @@
                         title.className = 'amarro-title';
                         title.textContent = `📦 ${amarro.codigo_amarro}`;
 
+                        const buttonGroup = document.createElement('div');
+                        buttonGroup.className = 'button-group';
+
+                        // Botón para editar
+                        const editBtn = document.createElement('button');
+                        editBtn.className = 'btn btn-edit';
+                        editBtn.textContent = '✏️ Editar';
+                        editBtn.onclick = () => editarAmarro(amarro);
+                        buttonGroup.appendChild(editBtn);
+
+                        // Botón para cambiar estado (solo si está completado)
+                        if (amarro.estado === 'COMPLETADO') {
+                            const changeStateBtn = document.createElement('button');
+                            changeStateBtn.className = 'btn btn-change-state';
+                            changeStateBtn.textContent = '↩️ Volver a Pendiente';
+                            changeStateBtn.onclick = () => cambiarEstado(amarro.id, amarro.codigo_amarro, 'PENDIENTE');
+                            buttonGroup.appendChild(changeStateBtn);
+                        }
+
                         const deleteBtn = document.createElement('button');
                         deleteBtn.className = 'btn btn-delete';
                         deleteBtn.textContent = '🗑️ Eliminar';
                         deleteBtn.onclick = () => deleteAmarro(amarro.id, amarro.codigo_amarro);
+                        buttonGroup.appendChild(deleteBtn);
 
                         header.appendChild(title);
-                        header.appendChild(deleteBtn);
+                        header.appendChild(buttonGroup);
 
                         const info = document.createElement('div');
                         info.className = 'amarro-info';
@@ -338,6 +390,53 @@
                     console.error('Error al eliminar amarro:', error);
                     alert('❌ Error de comunicación con el servidor.');
                 });
+        }
+
+        function cambiarEstado(amarroId, codigoAmarro, nuevoEstado) {
+            const estadoTexto = nuevoEstado === 'PENDIENTE' ? 'PENDIENTE' : 'COMPLETADO';
+
+            if (!confirm(`¿Cambiar el estado del amarro "${codigoAmarro}" a ${estadoTexto}?`)) {
+                return;
+            }
+
+            fetch('cambiar_estado_amarro.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    amarro_id: amarroId,
+                    nuevo_estado: nuevoEstado
+                })
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (!data || !data.success) {
+                        alert('❌ Error: ' + (data && data.message ? data.message : 'No se pudo cambiar el estado.'));
+                        return;
+                    }
+
+                    alert(`✅ Estado del amarro cambiado a ${estadoTexto}.`);
+                    loadAmarros();
+                })
+                .catch(error => {
+                    console.error('Error al cambiar estado:', error);
+                    alert('❌ Error de comunicación con el servidor.');
+                });
+        }
+
+        function editarAmarro(amarro) {
+            // Redirigir a index.html con parámetros para editar
+            const params = new URLSearchParams({
+                edit_id: amarro.id,
+                codigo: amarro.codigo_amarro,
+                anio: amarro.anio || '',
+                revisor: amarro.ubicacion || '',
+                rango_inicio: amarro.rango_inicio,
+                rango_fin: amarro.rango_fin
+            });
+
+            window.location.href = `index.html?${params.toString()}`;
         }
     </script>
 </body>

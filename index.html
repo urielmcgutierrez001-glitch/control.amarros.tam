@@ -398,6 +398,9 @@
         </div>
 
         <button id="saveBtn" class="btn btn-success hidden" onclick="saveRevision()">Guardar Revisión</button>
+        <button id="nuevoAmarroBtn" class="btn hidden" onclick="window.location.href='index.html'"
+            style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); margin-top: 0.5rem;">🔄 Nuevo
+            Amarro</button>
     </div>
 
     <div id="modal" class="modal">
@@ -532,6 +535,7 @@
 
             container.classList.remove('hidden');
             document.getElementById('saveBtn').classList.remove('hidden');
+            document.getElementById('nuevoAmarroBtn').classList.remove('hidden');
             document.getElementById('addExtraDocBtn').classList.remove('hidden');
         }
 
@@ -624,6 +628,23 @@
                 })
                 .catch(error => {
                     console.error('Error al guardar la revisión:', error);
+
+                    // Guardar en localStorage como respaldo
+                    const revisionData = {
+                        codigo_amarro: packageName,
+                        anio: year,
+                        revisor: reviewer,
+                        rango_inicio: rangeFrom,
+                        rango_fin: rangeTo,
+                        documentos: documents,
+                        documentos_adicionales: extraDocuments,
+                        timestamp: new Date().toISOString()
+                    };
+
+                    let pendingRevisions = JSON.parse(localStorage.getItem('pendingRevisions') || '[]');
+                    pendingRevisions.push(revisionData);
+                    localStorage.setItem('pendingRevisions', JSON.stringify(pendingRevisions));
+
                     let message = `<p><strong>Amarro:</strong> ${packageName}</p>`;
                     message += `<p><strong>Año:</strong> ${year}</p>`;
                     message += `<p><strong>Rango:</strong> Desde ${rangeFrom} hasta ${rangeTo}</p>`;
@@ -639,10 +660,13 @@
                         message += `<p style="color: #48bb78; font-weight: 600;">✓ Todos los documentos están presentes</p>`;
                     }
 
-                    message += `<p style="margin-top: 1rem; color: #c53030;"><strong>Base de datos:</strong> Error de comunicación con el servidor.</p>`;
+                    message += `<p style="margin-top: 1rem; color: #f59e0b;"><strong>⚠️ Sin conexión a base de datos</strong></p>`;
+                    message += `<p style="color: #2b6cb0;">✓ Revisión guardada localmente (${pendingRevisions.length} pendiente(s))</p>`;
 
                     document.getElementById('modalBody').innerHTML = message;
                     document.getElementById('modal').style.display = 'flex';
+
+                    updatePendingIndicator();
                 });
         }
 
@@ -736,6 +760,234 @@
                 closeExtraDocModal();
             }
         });
+
+        // Función para resetear el formulario y empezar nuevo amarro
+        function nuevoAmarro() {
+            document.getElementById('packageName').value = '';
+            document.getElementById('year').value = '';
+            document.getElementById('reviewer').value = '';
+            document.getElementById('rangeFrom').value = '';
+            document.getElementById('rangeTo').value = '';
+            document.getElementById('checklistContainer').classList.add('hidden');
+            document.getElementById('saveBtn').classList.add('hidden');
+            document.getElementById('nuevoAmarroBtn').classList.add('hidden');
+            document.getElementById('addExtraDocBtn').classList.add('hidden');
+            document.getElementById('extraDocsContainer').classList.add('hidden');
+            extraDocuments = [];
+            alert('✓ Formulario limpiado. Puedes iniciar un nuevo amarro.');
+        }
+
+        // Función para actualizar indicador de revisiones pendientes
+        function updatePendingIndicator() {
+            const pendingRevisions = JSON.parse(localStorage.getItem('pendingRevisions') || '[]');
+            let indicator = document.getElementById('pendingIndicator');
+
+            if (!indicator) {
+                indicator = document.createElement('div');
+                indicator.id = 'pendingIndicator';
+                indicator.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #f59e0b; color: white; padding: 0.75rem 1.25rem; border-radius: 10px; box-shadow: 0 4px 15px rgba(245, 158, 11, 0.4); cursor: pointer; font-weight: 600; z-index: 1000;';
+                indicator.onclick = syncPendingRevisions;
+                document.body.appendChild(indicator);
+            }
+
+            if (pendingRevisions.length > 0) {
+                indicator.innerHTML = `📤 ${pendingRevisions.length} revisión(es) pendiente(s) - Click para sincronizar`;
+                indicator.style.display = 'block';
+            } else {
+                indicator.style.display = 'none';
+            }
+        }
+
+        // Función para sincronizar revisiones pendientes
+        async function syncPendingRevisions() {
+            const pendingRevisions = JSON.parse(localStorage.getItem('pendingRevisions') || '[]');
+
+            if (pendingRevisions.length === 0) {
+                alert('No hay revisiones pendientes para sincronizar.');
+                return;
+            }
+
+            if (!confirm(`¿Sincronizar ${pendingRevisions.length} revisión(es) pendiente(s) con la base de datos?`)) {
+                return;
+            }
+
+            let successCount = 0;
+            let failedRevisions = [];
+
+            for (const revision of pendingRevisions) {
+                try {
+                    const response = await fetch('guardar_revision.php', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(revision)
+                    });
+
+                    const data = await response.json();
+
+                    if (data && data.success) {
+                        successCount++;
+                    } else {
+                        failedRevisions.push(revision);
+                    }
+                } catch (error) {
+                    console.error('Error sincronizando revisión:', error);
+                    failedRevisions.push(revision);
+                }
+            }
+
+            // Actualizar localStorage solo con las que fallaron
+            localStorage.setItem('pendingRevisions', JSON.stringify(failedRevisions));
+
+            if (successCount > 0) {
+                alert(`✅ ${successCount} revisión(es) sincronizada(s) exitosamente.${failedRevisions.length > 0 ? `\n⚠️ ${failedRevisions.length} revisión(es) aún pendiente(s).` : ''}`);
+            } else {
+                alert('❌ No se pudo sincronizar ninguna revisión. Verifica tu conexión.');
+            }
+
+            updatePendingIndicator();
+        }
+
+        // Verificar revisiones pendientes al cargar
+        document.addEventListener('DOMContentLoaded', () => {
+            updatePendingIndicator();
+            loadAmarroFromURL(); // Cargar datos si viene de edición
+        });
+
+        // Función para cargar datos de amarro desde URL para editar
+        async function loadAmarroFromURL() {
+            const params = new URLSearchParams(window.location.search);
+
+            if (!params.has('edit_id')) {
+                return; // No hay datos para cargar
+            }
+
+            // Llenar los campos del formulario
+            const codigo = params.get('codigo');
+            const anio = params.get('anio');
+            const revisor = params.get('revisor');
+            const rangoInicio = params.get('rango_inicio');
+            const rangoFin = params.get('rango_fin');
+
+            if (codigo) document.getElementById('packageName').value = codigo;
+            if (anio) document.getElementById('year').value = anio;
+            if (revisor) document.getElementById('reviewer').value = revisor;
+            if (rangoInicio) document.getElementById('rangeFrom').value = rangoInicio;
+            if (rangoFin) document.getElementById('rangeTo').value = rangoFin;
+
+            // Mostrar mensaje de edición
+            const editId = params.get('edit_id');
+            const container = document.querySelector('.container');
+            const alert = document.createElement('div');
+            alert.style.cssText = 'background: #4299e1; color: white; padding: 1rem; border-radius: 10px; margin-bottom: 1.5rem; text-align: center; font-weight: 600;';
+            alert.innerHTML = `✏️ Modo Edición - Amarro ID: ${editId}<br><small style="font-weight: 400;">Modifica los valores y guarda para actualizar</small>`;
+            container.insertBefore(alert, container.firstChild);
+
+            // Guardar el edit_id para usarlo al guardar
+            window.editAmarroId = editId;
+
+            // Cargar estados de documentos automáticamente
+            if (rangoInicio && rangoFin) {
+                try {
+                    const response = await fetch(`obtener_documentos_amarro.php?amarro_id=${editId}`);
+                    const data = await response.json();
+
+                    if (data && data.success && data.documentos) {
+                        // Generar la lista automáticamente con los estados
+                        generateChecklistWithStates(parseInt(rangoInicio), parseInt(rangoFin), data.documentos);
+                    } else {
+                        // Si falla, generar lista normal
+                        generateChecklist();
+                    }
+                } catch (error) {
+                    console.error('Error al cargar documentos:', error);
+                    // Si falla, generar lista normal
+                    generateChecklist();
+                }
+            }
+        }
+
+        // Función para generar checklist con estados precargados
+        function generateChecklistWithStates(rangeFrom, rangeTo, documentosData) {
+            const container = document.getElementById('checklistContainer');
+            const itemsContainer = document.getElementById('checklistItems');
+            itemsContainer.innerHTML = '';
+
+            // Crear mapa de documentos por número
+            const docMap = {};
+            documentosData.forEach(doc => {
+                docMap[doc.numero_documento] = doc;
+            });
+
+            for (let i = rangeFrom; i <= rangeTo; i++) {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'checklist-item';
+
+                const header = document.createElement('div');
+                header.className = 'doc-header';
+                header.textContent = `Documento ${i}`;
+
+                const checkboxesContainer = document.createElement('div');
+                checkboxesContainer.className = 'doc-checkboxes';
+
+                const docData = docMap[i];
+                const existeFisicamente = docData ? docData.existe_fisicamente === 1 : true;
+                const observaciones = docData ? (docData.observaciones || '') : '';
+                const esAnulado = observaciones.includes('Anulado');
+                const esNoUtilizado = observaciones.includes('No utilizado');
+
+                // Checkbox 1: Existe físicamente
+                const group1 = document.createElement('div');
+                group1.className = 'checkbox-group';
+                const checkbox1 = document.createElement('input');
+                checkbox1.type = 'checkbox';
+                checkbox1.id = `file-${i}`;
+                checkbox1.checked = existeFisicamente;
+                const label1 = document.createElement('label');
+                label1.htmlFor = `file-${i}`;
+                label1.textContent = 'Existe físicamente';
+                group1.appendChild(checkbox1);
+                group1.appendChild(label1);
+
+                // Checkbox 2: Anulado
+                const group2 = document.createElement('div');
+                group2.className = 'checkbox-group checkbox-anulado';
+                const checkbox2 = document.createElement('input');
+                checkbox2.type = 'checkbox';
+                checkbox2.id = `anulado-${i}`;
+                checkbox2.checked = esAnulado;
+                const label2 = document.createElement('label');
+                label2.htmlFor = `anulado-${i}`;
+                label2.textContent = 'Anulado';
+                group2.appendChild(checkbox2);
+                group2.appendChild(label2);
+
+                // Checkbox 3: No utilizado
+                const group3 = document.createElement('div');
+                group3.className = 'checkbox-group checkbox-no-utilizado';
+                const checkbox3 = document.createElement('input');
+                checkbox3.type = 'checkbox';
+                checkbox3.id = `no-utilizado-${i}`;
+                checkbox3.checked = esNoUtilizado;
+                const label3 = document.createElement('label');
+                label3.htmlFor = `no-utilizado-${i}`;
+                label3.textContent = 'No utilizado';
+                group3.appendChild(checkbox3);
+                group3.appendChild(label3);
+
+                checkboxesContainer.appendChild(group1);
+                checkboxesContainer.appendChild(group2);
+                checkboxesContainer.appendChild(group3);
+
+                itemDiv.appendChild(header);
+                itemDiv.appendChild(checkboxesContainer);
+                itemsContainer.appendChild(itemDiv);
+            }
+
+            container.classList.remove('hidden');
+            document.getElementById('saveBtn').classList.remove('hidden');
+            document.getElementById('nuevoAmarroBtn').classList.remove('hidden');
+            document.getElementById('addExtraDocBtn').classList.remove('hidden');
+        }
     </script>
 </body>
 
