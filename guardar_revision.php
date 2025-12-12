@@ -21,6 +21,7 @@ $rangoInicio  = $input['rango_inicio'] ?? null;
 $rangoFin     = $input['rango_fin'] ?? null;
 $documentos   = $input['documentos'] ?? null;
 $documentosAdicionales = $input['documentos_adicionales'] ?? [];
+$editId       = isset($input['edit_id']) ? (int) $input['edit_id'] : 0; // Detectar modo edición
 
 if (!$codigoAmarro || !is_array($documentos) || $rangoInicio === null || $rangoFin === null || $anio <= 0) {
     http_response_code(400);
@@ -47,17 +48,39 @@ try {
 
     $totalDocumentos = count($documentos) + count($documentosAdicionales);
 
-    $stmtAmarro = $pdo->prepare('INSERT INTO amarros (codigo_amarro, `año`, rango_inicio, rango_fin, total_documentos, ubicacion) VALUES (?, ?, ?, ?, ?, ?)');
-    $stmtAmarro->execute([
-        $codigoAmarro,
-        (int) $anio,
-        (int) $rangoInicio,
-        (int) $rangoFin,
-        (int) $totalDocumentos,
-        $revisor,
-    ]);
-
-    $amarroId = (int) $pdo->lastInsertId();
+    // Verificar si es modo edición
+    if ($editId > 0) {
+        // MODO EDICIÓN: Actualizar amarro existente
+        $stmtAmarro = $pdo->prepare('UPDATE amarros SET codigo_amarro = ?, `año` = ?, rango_inicio = ?, rango_fin = ?, total_documentos = ?, ubicacion = ? WHERE id = ?');
+        $stmtAmarro->execute([
+            $codigoAmarro,
+            (int) $anio,
+            (int) $rangoInicio,
+            (int) $rangoFin,
+            (int) $totalDocumentos,
+            $revisor,
+            $editId
+        ]);
+        
+        $amarroId = $editId;
+        
+        // Eliminar documentos antiguos antes de insertar los nuevos
+        $stmtDelete = $pdo->prepare('DELETE FROM documentos WHERE amarro_id = ?');
+        $stmtDelete->execute([$amarroId]);
+    } else {
+        // MODO CREACIÓN: Insertar nuevo amarro
+        $stmtAmarro = $pdo->prepare('INSERT INTO amarros (codigo_amarro, `año`, rango_inicio, rango_fin, total_documentos, ubicacion) VALUES (?, ?, ?, ?, ?, ?)');
+        $stmtAmarro->execute([
+            $codigoAmarro,
+            (int) $anio,
+            (int) $rangoInicio,
+            (int) $rangoFin,
+            (int) $totalDocumentos,
+            $revisor,
+        ]);
+        
+        $amarroId = (int) $pdo->lastInsertId();
+    }
 
     $stmtDocumento = $pdo->prepare('INSERT INTO documentos (amarro_id, numero_documento, existe_fisicamente, observaciones) VALUES (?, ?, ?, ?)');
 
@@ -99,7 +122,7 @@ try {
 
     echo json_encode([
         'success'    => true,
-        'message'    => 'Revisión guardada correctamente',
+        'message'    => $editId > 0 ? 'Amarro actualizado correctamente' : 'Revisión guardada correctamente',
         'amarro_id'  => $amarroId,
         'documentos' => $totalDocumentos,
     ]);

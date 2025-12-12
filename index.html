@@ -583,20 +583,27 @@
             }
 
             // Enviar datos al backend
+            const requestBody = {
+                codigo_amarro: packageName,
+                anio: year,
+                revisor: reviewer,
+                rango_inicio: rangeFrom,
+                rango_fin: rangeTo,
+                documentos: documents,
+                documentos_adicionales: extraDocuments
+            };
+
+            // Si estamos en modo edición, añadir edit_id
+            if (window.editAmarroId) {
+                requestBody.edit_id = window.editAmarroId;
+            }
+
             fetch('guardar_revision.php', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({
-                    codigo_amarro: packageName,
-                    anio: year,
-                    revisor: reviewer,
-                    rango_inicio: rangeFrom,
-                    rango_fin: rangeTo,
-                    documentos: documents,
-                    documentos_adicionales: extraDocuments
-                })
+                body: JSON.stringify(requestBody)
             })
                 .then(response => response.json())
                 .then(data => {
